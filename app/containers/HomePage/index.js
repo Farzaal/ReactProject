@@ -1,138 +1,65 @@
-/*
- * HomePage
- *
- * This is the first thing users see of our App, at the '/' route
- */
+import React from 'react';
+import cloud from 'assets/img/cloud.png';
+import WeaUpArrow from 'assets/img/WeaUpArrow.png';
+import WeArrow from 'assets/img/WeArrow.png';
+import AddSymbol from 'assets/img/AddSymbol.png';
+import CityImage from 'assets/img/CityImage.png';
+import { WEATHER_API_URL } from 'config/app';
+import axios from 'axios';
 
-import React, { useEffect, memo } from 'react';
-import PropTypes from 'prop-types';
-import { Helmet } from 'react-helmet';
-import { FormattedMessage } from 'react-intl';
-import { connect } from 'react-redux';
-import { compose } from 'redux';
-import { createStructuredSelector } from 'reselect';
+class HomePage extends React.Component { 
+    
+    state = {
+        error: false,
+        data: {},
+    }
 
-import { useInjectReducer } from 'utils/injectReducer';
-import { useInjectSaga } from 'utils/injectSaga';
-import {
-  makeSelectRepos,
-  makeSelectLoading,
-  makeSelectError,
-} from 'containers/App/selectors';
-import H2 from 'components/H2';
-import ReposList from 'components/ReposList';
-import AtPrefix from './AtPrefix';
-import CenteredSection from './CenteredSection';
-import Form from './Form';
-import Input from './Input';
-import Section from './Section';
-import messages from './messages';
-import { loadRepos } from '../App/actions';
-import { changeUsername } from './actions';
-import { makeSelectUsername } from './selectors';
-import reducer from './reducer';
-import saga from './saga';
+    componentDidMount() {
+        axios.get(WEATHER_API_URL)
+        .then((response) => {
+            this.setState({ data:response.data });
+        }).catch((error) => {
+            this.setState({ error: true });
+        });
+    }
 
-const key = 'home';
-
-export function HomePage({
-  username,
-  loading,
-  error,
-  repos,
-  onSubmitForm,
-  onChangeUsername,
-}) {
-  useInjectReducer({ key, reducer });
-  useInjectSaga({ key, saga });
-
-  useEffect(() => {
-    // When initial state username is not null, submit the form to load repos
-    if (username && username.trim().length > 0) onSubmitForm();
-  }, []);
-
-  const reposListProps = {
-    loading,
-    error,
-    repos,
-  };
-
-  return (
-    <article>
-      <Helmet>
-        <title>Home Page</title>
-        <meta
-          name="description"
-          content="A React.js Boilerplate application homepage"
-        />
-      </Helmet>
-      <div>
-        <CenteredSection>
-          <H2>
-            <FormattedMessage {...messages.startProjectHeader} />
-          </H2>
-          <p>
-            <FormattedMessage {...messages.startProjectMessage} />
-          </p>
-        </CenteredSection>
-        <Section>
-          <H2>
-            <FormattedMessage {...messages.trymeHeader} />
-          </H2>
-          <Form onSubmit={onSubmitForm}>
-            <label htmlFor="username">
-              <FormattedMessage {...messages.trymeMessage} />
-              <AtPrefix>
-                <FormattedMessage {...messages.trymeAtPrefix} />
-              </AtPrefix>
-              <Input
-                id="username"
-                type="text"
-                placeholder="mxstbr"
-                value={username}
-                onChange={onChangeUsername}
-              />
-            </label>
-          </Form>
-          <ReposList {...reposListProps} />
-        </Section>
-      </div>
-    </article>
-  );
+    render() {
+        if(this.state.error || Object.keys(this.state.data).length === 0) {
+            return(<div>...Loading</div>)
+        }
+        const { name } = this.state.data;
+        const { temp, temp_min, temp_max } = this.state.data.main;
+        return(
+            <div className="weather-wrapper">
+                <div className="weather-inner-wrap">
+                    <div className="spacer-50"></div>
+                    <div className="tempreature-wrapper">
+                        <p className="city-name">{ name }</p>
+                        <img className="center-image" src={cloud} width="150" height="150" />
+                        <p className="city-name" style={{'color':'#3BB4FA', 'fontSize':'20px', 'padding':'0','margin':'0'}}>{ temp }<sup>o</sup></p>
+                        <p className="city-name" style={{'color':'#3BB4FA', 'fontSize':'10px'}}>HAZE</p>
+                        <div className="tempreature-control">
+                            <div className="temp-min-div">
+                                <img src={WeArrow} width="30" height="30" /><br/>
+                                <span>{ temp_min }</span><br/>
+                                <span className="temp-min-value">Min</span>
+                            </div>
+                            <div className="temp-max-div">
+                                <img src={WeaUpArrow} width="30" height="30" /><br/>
+                                <span>{ temp_max }</span><br/>
+                                <span className="temp-max-value">Min</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="city-wrapper">
+                        <p className="city-name">Add City</p>
+                        <img className="center-image add-city" src={AddSymbol} />
+                        <img className="city-thumb" src={CityImage} height="80" />
+                    </div>
+                </div>
+            </div>
+        )
+    }
 }
 
-HomePage.propTypes = {
-  loading: PropTypes.bool,
-  error: PropTypes.oneOfType([PropTypes.object, PropTypes.bool]),
-  repos: PropTypes.oneOfType([PropTypes.array, PropTypes.bool]),
-  onSubmitForm: PropTypes.func,
-  username: PropTypes.string,
-  onChangeUsername: PropTypes.func,
-};
-
-const mapStateToProps = createStructuredSelector({
-  repos: makeSelectRepos(),
-  username: makeSelectUsername(),
-  loading: makeSelectLoading(),
-  error: makeSelectError(),
-});
-
-export function mapDispatchToProps(dispatch) {
-  return {
-    onChangeUsername: evt => dispatch(changeUsername(evt.target.value)),
-    onSubmitForm: evt => {
-      if (evt !== undefined && evt.preventDefault) evt.preventDefault();
-      dispatch(loadRepos());
-    },
-  };
-}
-
-const withConnect = connect(
-  mapStateToProps,
-  mapDispatchToProps,
-);
-
-export default compose(
-  withConnect,
-  memo,
-)(HomePage);
+export default HomePage;
